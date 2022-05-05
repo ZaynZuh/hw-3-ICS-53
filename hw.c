@@ -156,11 +156,11 @@ void init()
     }
 }
 
-struct timeval
-{
-    time_t tv_sec;  /* seconds */
-    time_t tv_usec; /* microseconds */
-};
+// struct timeval
+// {
+//     time_t tv_sec;  /* seconds */
+//     time_t tv_usec; /* microseconds */
+// };
 
 unsigned long long getMS()
 {
@@ -176,7 +176,8 @@ unsigned long long getMS()
 
 int firstAvailableMM()
 {
-    for (int i = 0; i < 32; i += 8)
+    int i;
+    for (i = 0; i < 32; i += 8)
         if (main_memory[i].address == 0)
             return i / 8;
     return -1;
