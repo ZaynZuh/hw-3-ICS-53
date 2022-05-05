@@ -1,5 +1,10 @@
 LRU
 read 1
+read 10
+read 30
+read 40
+read 50
+read 60
 write 1 1
 write 1 2
 showptable
