@@ -193,7 +193,12 @@ void read(int virtual_addr)
         where = firstAvailableMM();
 
         if (where == -1)
-            where = LRU();
+        {
+            if (lru == 1)
+                where = LRU();
+            else
+                where = FIFO();
+        }
 
         p_table[virtual_addr / 8].valid_bit = 1;
         p_table[virtual_addr / 8].time_stamp = count++;
@@ -230,7 +235,12 @@ void write(int virtual_addr, int data)
         where = firstAvailableMM();
 
         if (where == -1)
-            where = LRU();
+        {
+            if (lru == 1)
+                where = LRU();
+            else
+                where = FIFO();
+        }
 
         p_table[virtual_addr / 8].valid_bit = 1;
         p_table[virtual_addr / 8].time_stamp = count++;
@@ -326,7 +336,10 @@ void loop()
 
 int main(int argc, char **argv)
 {
-
+    if (argv[1] == NULL || strcmp(argv[1], "FIFO") == 0)
+        fifo = 1;
+    else if (strcmp(argv[1], "LRU") == 0)
+        lru = 1;
     init();
     loop();
     return 0;

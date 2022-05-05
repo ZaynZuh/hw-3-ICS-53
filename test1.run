@@ -1,0 +1,7 @@
+LRU
+read 1
+write 1 1
+write 1 2
+showptable
+showmain 0
+quit

@@ -1,0 +1,10 @@
+FIFO
+write 1 1
+read 1
+read 10
+read 20
+read 30
+read 40
+write 40 2
+showptable
+quit
