@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+// Khaja Zayn Zuhuruddin (65582663), zuhurudk
+// Kashan Hassan Saeed
+
 int count = 1;
 struct Memory
 {
@@ -289,7 +292,7 @@ void run(char args[3][10])
     else if (strcmp(args[0], "write") == 0)
         write(atoi(args[1]), atoi(args[2]));
 
-    else if (strcmp(args[0], "showmain\n") == 0)
+    else if (strcmp(args[0], "showmain") == 0)
         showmain(atoi(args[1]));
 
     else if (strcmp(args[0], "showptable\n") == 0)
