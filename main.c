@@ -12,13 +12,13 @@ typedef struct
 {
     int v_page_num;
     int time_stamp;
-    time_t lastAccessed;
+    unsigned long long lastAccessed;
 } tTuple;
 
 struct PageTable
 {
     int v_page_num, valid_bit, dirty_bit, page_num, time_stamp;
-    time_t lastAccessed;
+    unsigned long long lastAccessed;
 };
 
 struct Memory main_memory[32];
@@ -54,6 +54,7 @@ int fifo = 0, lru = 0;
 
 int LRU()
 {
+    printf("IN LRU\n");
     // gather info (v_page_num, time_stamp) on all the pages in main memory
     tTuple memory_pages[4];
     int i;
@@ -70,15 +71,17 @@ int LRU()
     }
 
     // find the oldest ("first in") page
-    time_t min = memory_pages[0].lastAccessed;
+    unsigned long long min = memory_pages[0].lastAccessed;
 
     int where = 0;
     int oldest_page_index_in_memory_pages = 0;
 
     for (i = 0; i < 4; i++)
     {
-        if (memory_pages[i].lastAccessed < min)
+
+        if ((memory_pages[i].lastAccessed) < min)
         {
+            printf("TRIGGERD");
             min = memory_pages[i].lastAccessed;
             where = i;
         }
@@ -108,6 +111,7 @@ int LRU()
 
     return oldest_page_index_in_memory_pages;
 }
+
 int FIFO()
 {
     // gather info (v_page_num, time_stamp) on all the pages in main memory
@@ -178,6 +182,24 @@ void init()
     }
 }
 
+struct timeval
+{
+    time_t tv_sec;  /* seconds */
+    time_t tv_usec; /* microseconds */
+};
+
+unsigned long long getMS()
+{
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+
+    unsigned long long millisecondsSinceEpoch =
+        (unsigned long long)(tv.tv_sec) * 1000 +
+        (unsigned long long)(tv.tv_usec) / 1000;
+    return millisecondsSinceEpoch;
+}
+
 int firstAvailableMM()
 {
     for (int i = 0; i < 32; i += 8)
@@ -198,12 +220,12 @@ void read(int virtual_addr)
         where = firstAvailableMM();
 
         if (where == -1)
-            where = FIFO();
+            where = LRU();
 
         p_table[virtual_addr / 8].valid_bit = 1;
         p_table[virtual_addr / 8].time_stamp = count++;
         p_table[virtual_addr / 8].page_num = where;
-        p_table[virtual_addr / 8].lastAccessed = time(NULL);
+        p_table[virtual_addr / 8].lastAccessed = getMS();
 
         for (i = 0; i < 8; i++)
         {
@@ -217,7 +239,10 @@ void read(int virtual_addr)
     }
 
     else
-        printf("%d\n", main_memory[p_table[virtual_addr].page_num + (virtual_addr % 8)].data);
+    {
+        p_table[virtual_addr / 8].lastAccessed = getMS();
+        printf("%d\n", main_memory[p_table[virtual_addr / 8].page_num + (virtual_addr % 8)].data);
+    }
 }
 
 void write(int virtual_addr, int data)
@@ -234,17 +259,17 @@ void write(int virtual_addr, int data)
         where = firstAvailableMM();
 
         if (where == -1)
-            where = FIFO();
+            where = LRU();
 
         p_table[virtual_addr / 8].valid_bit = 1;
         p_table[virtual_addr / 8].time_stamp = count++;
         p_table[virtual_addr / 8].page_num = where;
-        p_table[virtual_addr / 8].lastAccessed = time(NULL);
+        p_table[virtual_addr / 8].lastAccessed = getMS();
 
         for (i = 0; i < 8; i++)
             main_memory[where * 8 + i].address = 1;
 
-        main_memory[where * 8 + (virtual_addr % 8)].data = virtual_memory[virtual_addr].data;
+        // main_memory[where * 8 + (virtual_addr % 8)].data = virtual_memory[virtual_addr].data;
 
         main_memory[p_table[virtual_addr / 8].page_num + (virtual_addr % 8)].data = data;
         // printf("%d\n", main_memory[p_table[virtual_addr / 8].page_num].data);
@@ -252,6 +277,8 @@ void write(int virtual_addr, int data)
 
     else
     {
+        p_table[virtual_addr / 8].lastAccessed = getMS();
+
         main_memory[p_table[virtual_addr / 8].page_num + (virtual_addr % 8)].data = data;
         // printf("%d\n", main_memory[p_table[virtual_memory[virtual_addr].address / 8].page_num]);
     }
@@ -268,7 +295,7 @@ void showptable()
 {
     int i;
     for (i = 0; i < sizeof(p_table) / sizeof(p_table[0]); i++)
-        printf("%d:%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num, p_table[i].time_stamp);
+        printf("%d:%d:%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num, p_table[i].time_stamp, p_table[i].lastAccessed);
 }
 
 void showM()
@@ -278,8 +305,11 @@ void showM()
         printf("%d:%d\n", main_memory[i].address, main_memory[i].data);
 }
 
-void excute(char **args)
+void run(char args[3][10])
 {
+
+    args[2][strcspn(args[2], "\n")] = 0;
+    args[1][strcspn(args[2], "\n")] = 0;
 
     if (strcmp(args[0], "read") == 0)
         read(atoi(args[1]));
@@ -287,33 +317,62 @@ void excute(char **args)
     else if (strcmp(args[0], "write") == 0)
         write(atoi(args[1]), atoi(args[2]));
 
-    else if (strcmp(args[0], "showmain") == 0)
+    else if (strcmp(args[0], "showmain\n") == 0)
         showmain(atoi(args[1]));
 
-    else if (strcmp(args[0], "showptable") == 0)
+    else if (strcmp(args[0], "showptable\n") == 0)
         showptable();
 }
 
-// void loop()
+void parse(char args[3][10], char input[100])
+{
+    char *token = strtok(input, " ");
+
+    int i = 0;
+    strcpy(args[i], token);
+    i++;
+
+    while (token != NULL)
+    {
+        token = strtok(NULL, " ");
+        if (token == NULL)
+            return;
+        strcpy(args[i], token);
+        i++;
+    }
+}
+
+// void parse(char **arg, char input[100])
 // {
-//     char *input[100];
-//     char **args;
-
-//     do
+//     char *token = strtok(input, " ");
+//     // loop through the string to extract all other tokens
+//     while (token != NULL)
 //     {
-//         printf("> ");
-
-//         fgets(input, 80, stdin);
-
-//         args = tokenize((char *)input);
-
-//         if (strcmp(args[0], "quit") == 0)
-//             exit(0);
-
-//         execute(args);
-
-//     } while (1);
+//         printf(" %s\n", token); // printing each token
+//         token = strtok(NULL, " ");
+//     }
 // }
+
+void loop()
+{
+    char args[3][10];
+    char input[100];
+
+    do
+    {
+        printf("> ");
+
+        fgets(input, 80, stdin);
+
+        parse(args, input);
+
+        if (strcmp(args[0], "quit\n") == 0)
+            exit(0);
+
+        run(args);
+
+    } while (1);
+}
 
 int main(int argc, char **argv)
 {
@@ -323,19 +382,34 @@ int main(int argc, char **argv)
     // else if (strcmp(argv[1], "LRU") == 0)
     //     lru = 1;
 
+    // char args[3][10];
+    // char input[100];
+
+    // fgets(input, 80, stdin);
+
+    // parse(args, input);
+
+    // for (int i = 0; i < sizeof args / sizeof args[0]; i++)
+    // {
+    //     printf("%s ", args[i]);
+    // }
+    // printf("\n");
     init();
-    write(0, 11);
-    read(0);
-    read(8);
-    read(16);
-    read(24);
-    read(32);
-    write(32, 9);
-    read(32);
-    showmain(0);
+    // write(0, 11);
+    // read(0);
+    // read(8);
+    // read(16);
+    // read(24);
+    // showptable();
+    // read(0);
+    // read(32);
+
+    // write(32, 9);
+    // read(32);
+    // showmain(0);
 
     // showptable();
 
-    // loop();
+    loop();
     return 0;
 }
