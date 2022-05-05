@@ -28,34 +28,9 @@ struct PageTable p_table[16];
 
 int fifo = 0, lru = 0;
 
-// void FIFO()
-// {
-//     int i = 0;
-//     int index = -1;
-//     int min = 1;
-//     int temp[8];
-
-//     for (i = 0; i < sizeof(p_table) / sizeof(p_table[0]); i++)
-//     {
-//         if (p_table[i].time_stamp < min && p_table[i].time_stamp != 0)
-//         {
-//             min = p_table[i].time_stamp;
-//             index = i;
-//         }
-//     }
-
-//     for (i = (index * 8); i < index * 8 + 8; i++)
-//     {
-//         temp[i - (index * 8)] = virtual_memory[i].data;
-//         virtual_memory[i].data = main_memory[p_table[index].page_num].data;
-//         main_memory[p_table[index].page_num].data = temp[i - (index * 8)];
-//     }
-// }
-
 int LRU()
 {
-    printf("IN LRU\n");
-    // gather info (v_page_num, time_stamp) on all the pages in main memory
+
     tTuple memory_pages[4];
     int i;
     int i2 = 0;
@@ -81,7 +56,6 @@ int LRU()
 
         if ((memory_pages[i].lastAccessed) < min)
         {
-            printf("TRIGGERD");
             min = memory_pages[i].lastAccessed;
             where = i;
         }
@@ -211,7 +185,6 @@ void read(int virtual_addr)
 {
     int i;
     int where;
-    printf("executing : read(%d)\n", virtual_addr);
 
     if (p_table[virtual_addr / 8].valid_bit == 0)
     {
@@ -250,8 +223,6 @@ void write(int virtual_addr, int data)
     int i;
     int where;
 
-    printf("executing : write(%d, %d)\n", virtual_addr, data);
-
     if (p_table[virtual_memory[virtual_addr].address / 8].valid_bit == 0)
     {
         printf("A Page Fault Has Occurred\n");
@@ -269,10 +240,7 @@ void write(int virtual_addr, int data)
         for (i = 0; i < 8; i++)
             main_memory[where * 8 + i].address = 1;
 
-        // main_memory[where * 8 + (virtual_addr % 8)].data = virtual_memory[virtual_addr].data;
-
         main_memory[p_table[virtual_addr / 8].page_num + (virtual_addr % 8)].data = data;
-        // printf("%d\n", main_memory[p_table[virtual_addr / 8].page_num].data);
     }
 
     else
@@ -280,7 +248,7 @@ void write(int virtual_addr, int data)
         p_table[virtual_addr / 8].lastAccessed = getMS();
 
         main_memory[p_table[virtual_addr / 8].page_num + (virtual_addr % 8)].data = data;
-        // printf("%d\n", main_memory[p_table[virtual_memory[virtual_addr].address / 8].page_num]);
+        p_table[virtual_addr / 8].dirty_bit = 1;
     }
 }
 
@@ -295,14 +263,7 @@ void showptable()
 {
     int i;
     for (i = 0; i < sizeof(p_table) / sizeof(p_table[0]); i++)
-        printf("%d:%d:%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num, p_table[i].time_stamp, p_table[i].lastAccessed);
-}
-
-void showM()
-{
-    int i;
-    for (i = 0; i < sizeof(main_memory) / sizeof(main_memory[0]); i++)
-        printf("%d:%d\n", main_memory[i].address, main_memory[i].data);
+        printf("%d:%d:%d:%d\n", p_table[i].v_page_num, p_table[i].valid_bit, p_table[i].dirty_bit, p_table[i].page_num);
 }
 
 void run(char args[3][10])
@@ -342,17 +303,6 @@ void parse(char args[3][10], char input[100])
     }
 }
 
-// void parse(char **arg, char input[100])
-// {
-//     char *token = strtok(input, " ");
-//     // loop through the string to extract all other tokens
-//     while (token != NULL)
-//     {
-//         printf(" %s\n", token); // printing each token
-//         token = strtok(NULL, " ");
-//     }
-// }
-
 void loop()
 {
     char args[3][10];
@@ -376,40 +326,8 @@ void loop()
 
 int main(int argc, char **argv)
 {
-    // if (argv[1] == NULL || strcmp(argv[1], "FIFO") == 0)
-    //     fifo = 1;
 
-    // else if (strcmp(argv[1], "LRU") == 0)
-    //     lru = 1;
-
-    // char args[3][10];
-    // char input[100];
-
-    // fgets(input, 80, stdin);
-
-    // parse(args, input);
-
-    // for (int i = 0; i < sizeof args / sizeof args[0]; i++)
-    // {
-    //     printf("%s ", args[i]);
-    // }
-    // printf("\n");
     init();
-    // write(0, 11);
-    // read(0);
-    // read(8);
-    // read(16);
-    // read(24);
-    // showptable();
-    // read(0);
-    // read(32);
-
-    // write(32, 9);
-    // read(32);
-    // showmain(0);
-
-    // showptable();
-
     loop();
     return 0;
 }
